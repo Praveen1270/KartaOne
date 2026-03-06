@@ -1,249 +1,224 @@
 # 🧠 Karta One — Personal AI Assistant
 
-**Self-evolving autonomous AI assistant for India.**
+**Self-evolving autonomous AI assistant built for India.**
 
-Karta One never says *"I can't do that."*  
-Instead it **writes the code to do it**, tests it, installs it, and runs it — all in real time.
+Karta One runs entirely on Telegram. It remembers everything you tell it, orders food, buys products, searches the web, sets reminders — and when it doesn't know how to do something, it builds the capability itself.
 
 ---
 
-## What Makes This Different
+## Features
 
-Most AI agents have a fixed set of tools. Karta One has an evolving skill library.
+- **Persistent memory** — Tell it your name, city, preferences once. It remembers forever.
+- **Food ordering** — Order from Zomato or Swiggy via Cash on Delivery, fully automated.
+- **Shopping** — Buy from Amazon, Flipkart, Meesho COD without opening any app.
+- **Web search** — Real-time answers powered by Tavily.
+- **Reminders** — "Remind me at 9pm to drink water" — it just works.
+- **Self-improvement** — Ask it to do something new. If it can't, it writes the code to do it (requires Claude API key).
 
-When you ask it to do something it doesn't know how to do:
+---
+
+## Quick Start
+
+### 1. Clone & install
+
+```bash
+git clone https://github.com/Praveen1270/KartaOne.git
+cd KartaOne
+npm install
+```
+
+### 2. Run the setup wizard
+
+```bash
+npm run setup
+```
+
+The wizard asks for just 4 things:
+
+| Step | What |
+|------|------|
+| 1 | Your LLM provider & API key (Groq is free and fast) |
+| 2 | Telegram Bot Token — create one via [@BotFather](https://t.me/botfather) |
+| 3 | Your Telegram User ID — get it from [@userinfobot](https://t.me/userinfobot) |
+| 4 | Tavily API key for web search (optional, free at [tavily.com](https://tavily.com)) |
+
+> No delivery address needed during setup — just tell the bot your address in chat and it will remember it.
+
+### 3. Start
+
+```bash
+npm start
+```
+
+Then open Telegram and message your bot.
+
+---
+
+## Telegram Commands
+
+| Command | What it does |
+|---------|--------------|
+| `/start` | Welcome message |
+| `/skills` | List all available skills |
+| `/memory` | See what the bot remembers about you |
+| `/forget` | Clear memory and conversation history |
+| `/orders` | View recent order history |
+| `/reminders` | View active reminders |
+| `/help` | Usage examples |
+
+---
+
+## Example Conversations
 
 ```
-You: "Generate clips from this podcast"
-       ↓
-Karta One checks skill registry → no skill found
-       ↓
-SelfImprover asks Claude to write a TypeScript skill
-       ↓
-sandbox/validator.ts — safety check (no rm -rf, no eval, etc.)
-       ↓
-sandbox/tester.ts — runs tests in isolated child process
-       ↓
-Tests pass → skill saved to skills/learned/podcast-clips/
-           → npm packages installed
-           → registered in skill-registry.json
-           → hot-loaded without restart
-           → executed immediately on your podcast
-       ↓
-Next time you say "clip this" → loads instantly, no re-generation
+You:  "My name is Praveen and I live in Chennai"
+Bot:  "Got it Praveen! I'll remember that."
+      (Saves your name and city permanently)
+
+You:  "Order butter chicken from Zomato"
+Bot:  Searches Zomato, adds to cart, shows summary, asks YES/NO, places order COD
+
+You:  "Buy boAt earphones from Flipkart"
+Bot:  Finds the product, adds to cart, confirms, places COD order
+
+You:  "Remind me tomorrow at 8am to call the doctor"
+Bot:  "✅ Reminder set for tomorrow 8:00 AM"
+
+You:  "Search for the best monsoon destinations in India"
+Bot:  Returns live web search results
+
+You:  "Generate a summary from this PDF"
+Bot:  Builds a new skill on the fly (requires Claude API key), then runs it
 ```
+
+---
+
+## How Memory Works
+
+When you tell the bot something about yourself, it automatically extracts and saves the facts:
+
+- "My name is Praveen" → saves `name: Praveen`
+- "I live in Hyderabad" → saves `city: Hyderabad`
+- "I prefer vegetarian food" → saves `food_preference: vegetarian`
+
+These are stored in a local SQLite database and included in every future conversation so the bot always knows who you are.
+
+---
+
+## Supported LLM Providers
+
+| Provider | Free tier | Best for |
+|----------|-----------|----------|
+| **Groq** (Llama 3.3) | ✅ Generous free tier | Fast everyday use |
+| **Claude** (Anthropic) | ❌ Paid | Self-improvement feature |
+| **GPT-4o** (OpenAI) | ❌ Paid | High quality responses |
+| **Gemini** (Google) | ✅ Free tier | Alternative option |
+
+> Self-improvement (writing new skills) requires a Claude API key. All other features work with any provider.
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LLM_PROVIDER` | Yes | `groq` / `claude` / `openai` / `gemini` |
+| `GROQ_API_KEY` | If using Groq | From [console.groq.com](https://console.groq.com) |
+| `ANTHROPIC_API_KEY` | For self-improvement | From [console.anthropic.com](https://console.anthropic.com) |
+| `OPENAI_API_KEY` | If using OpenAI | From [platform.openai.com](https://platform.openai.com) |
+| `GEMINI_API_KEY` | If using Gemini | From [aistudio.google.com](https://aistudio.google.com) |
+| `TELEGRAM_BOT_TOKEN` | Yes | From [@BotFather](https://t.me/botfather) |
+| `ALLOWED_TELEGRAM_USER_ID` | Yes | Your Telegram user ID |
+| `TAVILY_API_KEY` | Optional | For web search |
 
 ---
 
 ## Architecture
 
 ```
-karta-one/
-│
+Karta One/
 ├── index.ts                    ← Entry point
-├── setup.ts                    ← Interactive terminal wizard
+├── setup.ts                    ← 4-step setup wizard
 │
 ├── core/
-│   ├── agent.ts                ← Main agent loop (skills → plugins → self-improve)
-│   ├── llm.ts                  ← Claude / GPT-4o / Gemini / Groq factory
-│   ├── planner.ts              ← Goal → execution plan
-│   ├── plugin-registry.ts      ← Existing plugin system
-│   ├── plugin-base.ts          ← Plugin interface
-│   ├── skill-base.ts           ← ⭐ Skill interface (superset of plugin)
-│   ├── skill-registry.ts       ← ⭐ Loads builtin + learned skills
-│   └── self-improver.ts        ← ⭐ Writes new skills via LLM
-│
-├── sandbox/
-│   ├── validator.ts            ← ⭐ Safety check (blocks dangerous patterns)
-│   ├── tester.ts               ← ⭐ Runs skill tests in isolated subprocess
-│   └── executor.ts             ← ⭐ Timeout-wrapped skill execution
+│   ├── agent.ts                ← Route → Skill → Plugin → Self-improve → Chat
+│   ├── llm.ts                  ← Groq / Claude / GPT-4o / Gemini factory
+│   ├── planner.ts              ← Natural language → execution plan
+│   ├── skill-base.ts           ← Skill interface & SkillContext
+│   ├── skill-registry.ts       ← Loads builtin + learned skills
+│   └── self-improver.ts        ← Writes new skills via Claude
 │
 ├── skills/
-│   ├── builtin/                ← Ships with the agent (never deleted)
-│   │   ├── chat/skill.ts
-│   │   ├── search/skill.ts
-│   │   ├── reminders/skill.ts
-│   │   ├── zomato/skill.ts
-│   │   ├── shop/skill.ts
-│   │   └── self-improve/skill.ts  ← ⭐ "list skills", "delete skill X"
-│   │
-│   └── learned/                ← ⭐ Auto-generated at runtime
-│       ├── skill-registry.json ← Index of all learned skills
-│       └── <skill-name>/
-│           ├── skill.ts
-│           ├── skill.test.ts
-│           ├── manifest.json
-│           └── deps.json
+│   ├── builtin/
+│   │   ├── chat/               ← Conversational fallback (uses your memories)
+│   │   ├── search/             ← Tavily web search
+│   │   ├── reminders/          ← Set & fire reminders
+│   │   ├── zomato/             ← Zomato ordering wrapper
+│   │   ├── shop/               ← Amazon / Flipkart / Meesho
+│   │   └── self-improve/       ← "list skills", "delete skill X"
+│   └── learned/                ← Auto-generated skills saved here
 │
-├── plugins/                    ← Existing browser automation (Zomato, Swiggy, Shop)
-├── browser/                    ← Playwright stealth browser
-├── gateway/telegram/           ← Telegram bot (files, askUser, updateMessage)
-├── memory/                     ← SQLite long-term memory
-└── utils/
-    ├── files.ts                ← ⭐ Telegram file download helpers
-    ├── logger.ts
-    └── helpers.ts
+├── plugins/
+│   ├── zomato/                 ← Full Zomato browser automation
+│   ├── swiggy/                 ← Full Swiggy browser automation
+│   └── universal-shop/         ← Amazon / Flipkart / Meesho automation
+│
+├── memory/
+│   ├── store.ts                ← SQLite: profiles, history, memories, orders
+│   └── context.ts              ← Builds SkillContext with memory attached
+│
+├── browser/
+│   ├── engine.ts               ← Stealth Playwright Chromium
+│   └── vision.ts               ← Claude Vision for screenshot understanding
+│
+├── gateway/telegram/
+│   ├── bot.ts                  ← Bot setup & commands
+│   └── handler.ts              ← Message handler, file downloads, askUser()
+│
+└── sandbox/
+    ├── validator.ts            ← Safety check for generated code
+    ├── tester.ts               ← Runs skill tests in isolated subprocess
+    └── executor.ts             ← Timeout-wrapped skill execution
 ```
-
----
-
-## Quick Start
-
-### 1. Install dependencies
-
-```bash
-npm install
-```
-
-### 2. Configure
-
-```bash
-npm run setup
-```
-
-The wizard asks for:
-- **LLM API key** (Claude recommended — required for self-improvement)
-- **Telegram Bot Token** (create via [@BotFather](https://t.me/botfather))
-- **Your Telegram User ID** (get from [@userinfobot](https://t.me/userinfobot))
-- **Delivery address** (for food & shopping orders)
-
-### 3. Start Karta One
-
-```bash
-npm start
-```
-
----
-
-## Telegram Commands
-
-| Command | Description |
-|---------|-------------|
-| `/start` | Welcome message |
-| `/skills` | List all skills (builtin + learned) |
-| `/help` | Usage examples |
-| `/delete <skill>` | Delete a learned skill |
-| `/memory` | What the agent remembers about you |
-| `/forget` | Clear memory and conversation history |
-| `/orders` | Recent order history |
-| `/reminders` | Active reminders |
-
----
-
-## Built-in Skills
-
-| Skill | Triggers | Description |
-|-------|----------|-------------|
-| 🍕 Zomato | "order", "zomato", "food", "biryani"… | Order food from Zomato COD |
-| 🛒 Shop | "buy", "amazon", "flipkart", "meesho"… | Buy products COD |
-| 🔍 Search | "search", "find", "what is"… | Web search via Tavily |
-| ⏰ Reminders | "remind", "alert", "schedule"… | Set/manage reminders |
-| 🧠 Self-Improve | "list skills", "delete skill"… | Manage the skill system |
-| 💬 Chat | *(fallback)* | LLM conversation |
-
----
-
-## How Self-Improvement Works
-
-1. User sends a message that matches no skill or plugin trigger in Karta One
-2. `SelfImprover.createSkill()` is called with the user's request
-3. Claude is prompted to write a complete TypeScript skill (up to 3 attempts)
-4. `SandboxValidator` scans for dangerous patterns:
-   - `rm -rf`, `process.exit()`, `eval()`, `new Function()`
-   - File operations outside `/tmp`
-   - Raw TCP/UDP access, env tampering, crypto mining
-5. npm packages declared in the manifest are installed
-6. `SandboxTester` runs the skill's test file in an isolated `ts-node` subprocess
-7. If tests pass: skill is saved to `skills/learned/`, registered in `skill-registry.json`, and hot-loaded
-8. The skill is executed immediately on the user's original request
-9. All future matching requests load the skill instantly from disk
-
-### What Claude generates for each skill:
-
-```
-skills/learned/<skill-name>/
-├── skill.ts          ← The full TypeScript skill class
-├── skill.test.ts     ← Auto-generated tests
-├── manifest.json     ← Metadata, triggers, version
-└── deps.json         ← npm packages
-```
-
----
-
-## File Upload Support
-
-Send any file to the bot and skills can access it:
-
-```
-context.files[0].path     ← Local path to the downloaded file
-context.files[0].fileName ← Original filename
-context.files[0].mimeType ← e.g. "audio/mpeg", "application/pdf"
-context.files[0].size     ← File size in bytes
-```
-
-Supported types: documents, photos, audio, voice messages, video
 
 ---
 
 ## SkillContext API
 
-Every skill receives a `SkillContext` with:
+Every skill (builtin or self-generated) receives a full `SkillContext`:
 
 ```typescript
-context.reply(text)                        // Send text to user
-context.replyWithFile(path, caption?)      // Send file to user
-context.replyWithPhoto(path, caption?)     // Send image to user
-context.askUser(question)                  // Pause and wait for user reply
-context.updateMessage(text)                // Edit previous progress message
-context.files[]                            // Files user sent
-context.message                            // Original user message
-context.profile                            // User profile (name, city, phone)
-context.memory                             // Key-value memories
-context.history                            // Conversation history
-```
-
----
-
-## Environment Variables
-
-See `.env.example` for the full list. Key variables:
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | **Yes** (for self-improvement) | Claude API key |
-| `TELEGRAM_BOT_TOKEN` | **Yes** | From @BotFather |
-| `ALLOWED_TELEGRAM_USER_ID` | **Yes** | Your Telegram user ID |
-| `LLM_PROVIDER` | No (default: `claude`) | `claude` / `openai` / `gemini` / `groq` |
-| `TAVILY_API_KEY` | No | For web search |
-| `ZOMATO_PHONE` | No | For Zomato ordering |
-| `SWIGGY_PHONE` | No | For Swiggy ordering |
-
----
-
-## Logs
-
-```
-logs/combined.log   ← All activity
-logs/error.log      ← Errors only
-```
-
----
-
-## Development
-
-```bash
-npm run dev    # Hot-reload with ts-node-dev
-npm run build  # Compile to dist/
+context.reply(text)                    // Send a message to the user
+context.replyWithFile(path, caption?)  // Send a file
+context.replyWithPhoto(path, caption?) // Send an image
+context.askUser(question)              // Ask something, wait for reply
+context.updateMessage(text)            // Edit the last progress message
+context.saveMemory(key, value)         // Persist a fact about the user
+context.updateProfile(updates)         // Update user profile fields
+context.message                        // The original user message
+context.profile                        // Name, phone, address, city
+context.memory                         // All saved key-value memories
+context.history                        // Recent conversation history
+context.files[]                        // Files uploaded by the user
 ```
 
 ---
 
 ## Safety
 
-The self-improvement system has multiple layers of protection:
+Self-generated skills go through multiple checks before running:
 
-1. **Static analysis** — `SandboxValidator` blocks 15+ dangerous code patterns before any code runs
-2. **Isolated testing** — Skills run in a child process with a 60-second timeout before activation
-3. **Restricted output** — LLM-generated skills are instructed to only write files to `/tmp`
-4. **No direct shell** — `child_process.exec/execSync` are blocked patterns
-5. **Single user** — `ALLOWED_TELEGRAM_USER_ID` restricts access to only you
+1. **Static analysis** — blocks `rm -rf`, `eval()`, `process.exit()`, raw TCP, env tampering
+2. **Isolated testing** — runs in a child process with a 60-second timeout
+3. **Tmp-only output** — skills are instructed to only write files to the system temp directory
+4. **Single-user access** — `ALLOWED_TELEGRAM_USER_ID` blocks everyone else
+
+---
+
+## Development
+
+```bash
+npm run dev     # Hot-reload with ts-node-dev
+npm run build   # Compile TypeScript to dist/
+npm run setup   # Re-run the setup wizard
+```
