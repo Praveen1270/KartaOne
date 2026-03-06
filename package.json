@@ -1,0 +1,32 @@
+{
+  "name": "karta-one",
+  "version": "2.0.0",
+  "description": "Karta One — Personal AI Assistant. Self-evolving autonomous agent that writes its own skills at runtime.",
+  "main": "dist/index.js",
+  "scripts": {
+    "setup": "npx ts-node setup.ts",
+    "start": "npx ts-node index.ts",
+    "dev": "npx ts-node-dev --respawn --transpile-only index.ts",
+    "build": "npx tsc",
+    "start:prod": "node dist/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.7.2",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.4.5",
+    "node-schedule": "^2.1.1",
+    "openai": "^4.47.0",
+    "playwright": "^1.44.0",
+    "telegraf": "^4.16.3",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/node-schedule": "^2.1.7",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}
