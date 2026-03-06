@@ -108,7 +108,6 @@ export function createHandler(agent: Agent, memory: MemoryStore) {
               { parse_mode: "Markdown" }
             );
           } catch {
-            // Message too old, or unchanged — send fresh one
             const sent = await sendMessage(ctx, text, true);
             if (sent) lastBotMsgId.set(userId, sent);
           }
@@ -116,6 +115,14 @@ export function createHandler(agent: Agent, memory: MemoryStore) {
           const sent = await sendMessage(ctx, text, true);
           if (sent) lastBotMsgId.set(userId, sent);
         }
+      },
+
+      saveMemory: async (key: string, value: string) => {
+        memory.setMemory(userId, key, value);
+      },
+
+      updateProfile: async (updates: Partial<import("../../core/skill-base").UserProfile>) => {
+        memory.updateProfile(userId, updates);
       },
     };
 

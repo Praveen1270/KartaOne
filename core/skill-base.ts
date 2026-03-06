@@ -59,6 +59,10 @@ export interface SkillContext {
   replyWithPhoto: (path: string, caption?: string) => Promise<void>;
   askUser: (question: string) => Promise<string>;
   updateMessage: (text: string) => Promise<void>;
+  /** Persist a key-value fact about the user across all future sessions. */
+  saveMemory: (key: string, value: string) => Promise<void>;
+  /** Update user profile fields (name, phone, address, etc.). */
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
 }
 
 export interface SkillResult {

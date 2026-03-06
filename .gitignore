@@ -15,10 +15,24 @@ build/
 out/
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Database & runtime data
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Temporary files
+tmp/
+temp/
+
+# Browser sessions (contain login cookies)
+.sessions/
 
 # OS
 .DS_Store

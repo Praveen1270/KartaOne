@@ -113,44 +113,47 @@ export class Agent {
       return;
     }
 
-    // ── 4. Nothing matched → self-improve ───────────────────
-    logger.info(`No skill/plugin for: "${message.slice(0, 60)}" — triggering self-improvement`);
+    // ── 4. Nothing matched → self-improve or chat fallback ──
+    // Only attempt self-improvement when:
+    //   a) ANTHROPIC_API_KEY is available (SelfImprover requires Claude)
+    //   b) The message looks like a genuine new-capability request
+    const canSelfImprove =
+      !!process.env.ANTHROPIC_API_KEY && this.isNewCapabilityRequest(message);
 
-    const result = await this.improver.createSkill(message, {
-      reply: ctx.reply,
-      updateMessage: ctx.updateMessage,
-    });
+    if (canSelfImprove) {
+      logger.info(`No skill/plugin for: "${message.slice(0, 60)}" — triggering self-improvement`);
 
-    if (result.success && result.skillName) {
-      // Hot-load the new skill into the registry
-      await this.skills.hotLoad(result.skillName);
-      const newSkill = this.skills.get(result.skillName);
+      const result = await this.improver.createSkill(message, {
+        reply: ctx.reply,
+        updateMessage: ctx.updateMessage,
+      });
 
-      if (newSkill) {
-        const execResult = await this.executor.run(newSkill, message, ctx);
-        if (execResult.output) await ctx.reply(execResult.output);
-        if (execResult.files?.length) {
-          for (const filePath of execResult.files) {
-            await ctx.replyWithFile(filePath);
+      if (result.success && result.skillName) {
+        await this.skills.hotLoad(result.skillName);
+        const newSkill = this.skills.get(result.skillName);
+
+        if (newSkill) {
+          const execResult = await this.executor.run(newSkill, message, ctx);
+          if (execResult.output) await ctx.reply(execResult.output);
+          if (execResult.files?.length) {
+            for (const filePath of execResult.files) {
+              await ctx.replyWithFile(filePath);
+            }
           }
+          await this.memory.saveConversation(userId, message, execResult.output);
         }
-        await this.memory.saveConversation(userId, message, execResult.output);
+        return;
       }
-    } else {
-      // Self-improvement failed → fall back to LLM chat
       logger.warn(`Self-improvement failed: ${result.error}`);
-      await ctx.reply(
-        "❌ I tried to build this capability but couldn't get it working.\n\n" +
-          "Let me try a regular LLM response instead..."
-      );
+    }
 
-      const chatPlugin = this.plugins.get("chat");
-      if (chatPlugin) {
-        const agentCtx = this.toAgentContext(ctx);
-        const chatResult = await chatPlugin.run(message, agentCtx);
-        if (chatResult.output) await ctx.reply(chatResult.output);
-        await this.memory.saveConversation(userId, message, chatResult.output);
-      }
+    // ── 5. Chat fallback (LLM conversation) ─────────────────
+    logger.info(`Chat fallback for: "${message.slice(0, 60)}"`);
+    const chatSkill = this.skills.get("chat");
+    if (chatSkill) {
+      const execResult = await this.executor.run(chatSkill, message, ctx);
+      if (execResult.output) await ctx.reply(execResult.output);
+      await this.memory.saveConversation(userId, message, execResult.output);
     }
   }
 
@@ -280,6 +283,33 @@ export class Agent {
 
       await this.memory.saveConversation(userId, ctx.message, result.output);
     }
+  }
+
+  /**
+   * Returns true only when the message looks like a request for a genuinely
+   * new automation capability (not plain conversation or questions).
+   * Prevents the self-improver from firing on every chat message.
+   */
+  private isNewCapabilityRequest(message: string): boolean {
+    const lower = message.toLowerCase().trim();
+
+    // Plain questions → chat
+    if (/^(what|who|where|when|why|how|is|are|do|does|did|tell me|can you tell|explain)/.test(lower)) return false;
+    // Greetings / pleasantries → chat
+    if (/^(hi|hello|hey|thanks|thank you|ok|okay|bye|good morning|good evening|good night|namaste|haha|lol)/.test(lower)) return false;
+    // Personal statements / memory updates → chat
+    if (/^(my name|i am|i'm|call me|i live|my phone|remember|note that|i like|i prefer|i love|i hate|i use|i have|i work|i study)/.test(lower)) return false;
+    // Short messages are almost never capability requests
+    if (lower.split(/\s+/).length < 5) return false;
+
+    // Capability request keywords
+    const capabilityKeywords = [
+      "build", "create a tool", "make a tool", "write a skill", "new skill",
+      "automate", "script", "generate", "convert", "extract", "download",
+      "scrape", "parse", "process", "analyze", "summarize from", "clip",
+      "resize", "compress", "merge", "split", "combine",
+    ];
+    return capabilityKeywords.some((kw) => lower.includes(kw));
   }
 
   /** Bridge SkillContext → AgentContext for the existing plugin system. */

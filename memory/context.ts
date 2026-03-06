@@ -36,7 +36,7 @@ export function buildContext(
 export function buildSkillContext(
   userId: string,
   message: string,
-  memory: MemoryStore,
+  memoryStore: MemoryStore,
   files: UploadedFile[],
   reply: (text: string) => Promise<void>,
   replyWithFile: (path: string, caption?: string) => Promise<void>,
@@ -44,7 +44,7 @@ export function buildSkillContext(
   askUser: (question: string) => Promise<string>,
   updateMessage: (text: string) => Promise<void>
 ): SkillContext {
-  const profile = memory.getProfile(userId);
+  const profile = memoryStore.getProfile(userId);
   return {
     userId,
     message,
@@ -56,12 +56,18 @@ export function buildSkillContext(
       language: profile.language,
       preferences: profile.preferences,
     },
-    memory: memory.getMemories(userId),
-    history: memory.getHistory(userId) as import("../core/skill-base").Message[],
+    memory: memoryStore.getMemories(userId),
+    history: memoryStore.getHistory(userId) as import("../core/skill-base").Message[],
     reply,
     replyWithFile,
     replyWithPhoto,
     askUser,
     updateMessage,
+    saveMemory: async (key: string, value: string) => {
+      memoryStore.setMemory(userId, key, value);
+    },
+    updateProfile: async (updates: Partial<import("../core/plugin-base").UserProfile>) => {
+      memoryStore.updateProfile(userId, updates);
+    },
   };
 }

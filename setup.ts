@@ -141,23 +141,11 @@ async function main(): Promise<void> {
     config["TAVILY_API_KEY"] = await askSecret("Tavily API Key (Enter to skip): ");
   }
 
-  const wantsZomato = await ask("\nHave a Zomato account? y/n [y]: ");
-  if (wantsZomato.trim().toLowerCase() !== "n") {
-    config["ZOMATO_PHONE"] = await ask("  Zomato phone number: ");
-  }
-
-  const wantsSwiggy = await ask("\nHave a Swiggy account? y/n [y]: ");
-  if (wantsSwiggy.trim().toLowerCase() !== "n") {
-    config["SWIGGY_PHONE"] = await ask("  Swiggy phone number: ");
-  }
-
-  // ── STEP 6: Safety Limits ─────────────────────────────────
-  console.log("\n━━━ STEP 6: Safety Settings ━━━\n");
-  const maxAmount = await ask("Max COD order without confirmation (₹) [500]: ");
-  config["MAX_ORDER_AMOUNT"] = maxAmount.trim() || "500";
+  // Defaults — no need to ask the user
+  config["MAX_ORDER_AMOUNT"]     = "500";
   config["REQUIRE_CONFIRMATION"] = "true";
-  config["TIMEZONE"]  = "Asia/Kolkata";
-  config["LOG_LEVEL"] = "info";
+  config["TIMEZONE"]             = "Asia/Kolkata";
+  config["LOG_LEVEL"]            = "info";
 
   // ── Write .env ────────────────────────────────────────────
   const envLines = Object.entries(config)
