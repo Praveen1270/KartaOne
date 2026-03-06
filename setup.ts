@@ -124,17 +124,8 @@ async function main(): Promise<void> {
   console.log("  Open Telegram → search @userinfobot → send /start\n");
   config["ALLOWED_TELEGRAM_USER_ID"] = await ask("Enter your Telegram User ID: ");
 
-  // ── STEP 4: Delivery Address ──────────────────────────────
-  console.log("\n━━━ STEP 4: Default Delivery Address ━━━\n");
-  config["DEFAULT_ADDRESS_LINE1"] = await ask("Address Line 1 (flat/building): ");
-  config["DEFAULT_ADDRESS_LINE2"] = await ask("Address Line 2 (area/landmark): ");
-  config["DEFAULT_CITY"]    = await ask("City: ");
-  config["DEFAULT_PINCODE"] = await ask("Pincode: ");
-  config["DEFAULT_PHONE"]   = await ask("Phone number: ");
-  config["DEFAULT_NAME"]    = await ask("Your name: ");
-
-  // ── STEP 5: Optional ─────────────────────────────────────
-  console.log("\n━━━ STEP 5: Optional Features ━━━\n");
+  // ── STEP 4: Optional ─────────────────────────────────────
+  console.log("\n━━━ STEP 4: Optional Features ━━━\n");
 
   const wantsSearch = await ask("Enable web search? (Tavily — free at tavily.com) y/n [y]: ");
   if (wantsSearch.trim().toLowerCase() !== "n") {
